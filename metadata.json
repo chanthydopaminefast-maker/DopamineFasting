@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Peak Performance Growth Portal",
+  "description": "A comprehensive platform for personal growth, habit tracking, daily journaling, and task management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

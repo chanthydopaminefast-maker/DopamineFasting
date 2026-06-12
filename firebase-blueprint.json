@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "AppData": {
+      "title": "AppData",
+      "description": "User's application data",
+      "type": "object",
+      "properties": {
+        "students": { "type": "array" },
+        "settings": { "type": "object" },
+        "attendance": { "type": "object" },
+        "dailyTasks": { "type": "object" }
+      }
+    },
+    "SharedNote": {
+      "title": "SharedNote",
+      "description": "Shared self-learning, journal or note-taking entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "payload": { "type": "object" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}/appData/data": {
+      "schema": "AppData",
+      "description": "User specific app data"
+    },
+    "/users/{userId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Individual student record"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "ExpenseEntry",
+      "description": "Expense/Income entry"
+    },
+    "/users/{userId}/attendance/{date}": {
+      "schema": "object",
+      "description": "Attendance map for a specific date"
+    },
+    "/users/{userId}/dailyTasks/{studentId}": {
+      "schema": "object",
+      "description": "Daily tasks statuses for a specific student"
+    },
+    "/users/{userId}/habitCompletions/{date}": {
+      "schema": "object",
+      "description": "Habit completions for a date"
+    },
+    "/users/{userId}/dailyNotes/{date}": {
+      "schema": "object",
+      "description": "Daily note content for a date"
+    },
+    "/sharedNotes/{shareId}": {
+      "schema": "SharedNote",
+      "description": "Shared self-learning, journal or note-taking entry"
+    }
+  }
+}
