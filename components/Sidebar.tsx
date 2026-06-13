@@ -200,7 +200,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <p className="text-[10px] font-black text-rose-600 truncate lowercase mt-0.5">{currentUser?.email || 'Local Account'}</p>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                    <span className={`text-[9px] font-black leading-none ${isOnline ? 'text-emerald-600' : 'text-amber-600/90'}`} title={isOnline ? "Connected to dynamic cloud sync" : "Offline. Notes are saved locally and will auto-sync when connection is restored."}>
+                    <span 
+                      className={`text-[9px] font-black leading-none ${isOnline ? 'text-emerald-600' : 'text-amber-600/90'}`} 
+                      title={
+                        isOnline 
+                          ? "Connected to dynamic cloud sync" 
+                          : typeof window !== 'undefined' && window.navigator.onLine 
+                            ? "Internet connected, but MongoDB Atlas is unreachable! Ensure '0.0.0.0/0' (Allow Access From Anywhere) is whitelisted under Network Access in MongoDB Atlas, and verify your MONGODB_URI variable." 
+                            : "Offline. Notes are saved locally and will auto-sync when connection is restored."
+                      }
+                    >
                       {isOnline ? 'Online • synced' : 'Offline • local'}
                     </span>
                   </div>
