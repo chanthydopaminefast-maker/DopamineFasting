@@ -16,10 +16,26 @@ async function getMongoDb() {
     throw new Error('MONGODB_URI environment variable is not defined.');
   }
   if (!mongoClient) {
-    mongoClient = new MongoClient(uri);
-    await mongoClient.connect();
+    const client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    await client.connect();
+    mongoClient = client;
     console.log("Lazily connected to MongoDB database.");
   }
+
+  try {
+    // Ping DB to confirm the connection is active and whitelisted
+    await mongoClient.db().command({ ping: 1 });
+  } catch (err) {
+    console.warn("MongoDB client ping failed, resetting connection...", err);
+    try {
+      await mongoClient.close();
+    } catch (_) {}
+    mongoClient = null;
+    throw err;
+  }
+
   return mongoClient.db();
 }
 
