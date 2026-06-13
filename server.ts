@@ -1,11 +1,7 @@
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { MongoClient } from 'mongodb';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 let mongoClient: MongoClient | null = null;
 
@@ -541,4 +537,6 @@ app.use(express.json({ limit: '10mb' }));
     console.error('Global Uncaught Exception:', error);
   });
 
-  startServer();
+  startServer().catch(err => {
+    console.error('Initial server startup error:', err);
+  });
