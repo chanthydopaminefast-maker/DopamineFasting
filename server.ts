@@ -506,7 +506,9 @@ app.use(express.json({ limit: '10mb' }));
         appType: 'spa',
       });
       app.use(vite.middlewares);
-    } else {
+    } else if (!process.env.VERCEL) {
+      // Static file serving and wildcard SPA routes are disabled on Vercel serverless environments.
+      // Doing this here in Vercel lambdas is dangerous and unnecessary as Vercel serves static files directly from its CDN.
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
       app.get('*', (req, res) => {
@@ -520,5 +522,23 @@ app.use(express.json({ limit: '10mb' }));
       });
     }
   }
+
+  // Global Express Error-handling middleware
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Unhandled Server Error Catch:', err);
+    res.status(500).json({
+      error: err?.message || 'An unexpected server error occurred.',
+      stack: process.env.NODE_ENV !== 'production' ? err?.stack : undefined
+    });
+  });
+
+  // Global process exception boundaries to prevent hard crashes
+  process.on('unhandledRejection', (reason) => {
+    console.error('Global Unhandled Rejection:', reason);
+  });
+  
+  process.on('uncaughtException', (error) => {
+    console.error('Global Uncaught Exception:', error);
+  });
 
   startServer();
