@@ -29,6 +29,10 @@ export const MaintenancePanel: React.FC<Props> = ({ data, onUpdate }) => {
     setCheckingMongo(true);
     try {
       const res = await fetch('/api/mongodb/status');
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server returned HTTP ${res.status}: ${text.slice(0, 120)}`);
+      }
       const json = await res.json();
       setMongoStatus(json);
     } catch (err: any) {
