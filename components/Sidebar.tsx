@@ -29,6 +29,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { Tab, UserRole, AppSettings, ViewMode, StudentCategory, AppData, CurrentUser } from '../types';
+import { getSyncStatus } from '../services/firebase';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -74,16 +75,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRedo
 }) => {
 
-  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const checkSyncStatus = () => {
+      const active = typeof window !== 'undefined' && window.navigator.onLine && getSyncStatus();
+      setIsOnline(!!active);
+    };
+
+    checkSyncStatus();
+
+    const interval = setInterval(checkSyncStatus, 3000);
+
+    const handleOnline = () => setIsOnline(getSyncStatus());
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };

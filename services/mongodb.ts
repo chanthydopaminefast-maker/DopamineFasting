@@ -90,7 +90,96 @@ export const subscribeToData = (
       
       const sub = activeSubscriptions.get(userId);
       if (sub) {
-        sub.currentData = { ...sub.currentData, ...remoteData };
+        // Safe check: Is remote data totally empty while local data exists?
+        // If they just logged in with a fresh account of MongoDB, we should migrate their local data!
+        const isRemoteEmpty = (
+          (!remoteData.students || remoteData.students.length === 0) &&
+          (!remoteData.habits || remoteData.habits.length === 0) &&
+          (!remoteData.expenses || remoteData.expenses.length === 0) &&
+          (!remoteData.dpssTopics || remoteData.dpssTopics.length === 0) &&
+          (!remoteData.selfLearningTopics || remoteData.selfLearningTopics.length === 0) &&
+          (!remoteData.dailyNotes || Object.keys(remoteData.dailyNotes).length === 0) &&
+          (!remoteData.journalEntries || Object.keys(remoteData.journalEntries).length === 0) &&
+          (!remoteData.habitCompletions || Object.keys(remoteData.habitCompletions).length === 0) &&
+          (!remoteData.attendance || Object.keys(remoteData.attendance).length === 0)
+        );
+
+        const isLocalNotEmpty = (
+          (sub.currentData.students && sub.currentData.students.length > 0) ||
+          (sub.currentData.habits && sub.currentData.habits.length > 0) ||
+          (sub.currentData.expenses && sub.currentData.expenses.length > 0) ||
+          (sub.currentData.dpssTopics && sub.currentData.dpssTopics.length > 0) ||
+          (sub.currentData.selfLearningTopics && sub.currentData.selfLearningTopics.length > 0) ||
+          (sub.currentData.dailyNotes && Object.keys(sub.currentData.dailyNotes).length > 0) ||
+          (sub.currentData.journalEntries && Object.keys(sub.currentData.journalEntries).length > 0) ||
+          (sub.currentData.habitCompletions && Object.keys(sub.currentData.habitCompletions).length > 0) ||
+          (sub.currentData.attendance && Object.keys(sub.currentData.attendance).length > 0)
+        );
+
+        if (isRemoteEmpty && isLocalNotEmpty) {
+          console.log("MongoDB is empty but pre-existing local data exists. Launching dynamic initialization migration.");
+
+          // One-time asynchronous stream migration in background so UI updates instantly
+          const uploadLocalDataToRemote = async () => {
+            try {
+              if (sub.currentData.settings) {
+                await postData('/api/mongodb/save', { userId, settings: sub.currentData.settings });
+              }
+              if (sub.currentData.students?.length) {
+                for (const student of sub.currentData.students) {
+                  await postData('/api/mongodb/student', { userId, student });
+                }
+              }
+              if (sub.currentData.habits?.length) {
+                await postData('/api/mongodb/habits', { userId, habits: sub.currentData.habits });
+              }
+              if (sub.currentData.expenses?.length) {
+                for (const expense of sub.currentData.expenses) {
+                  await postData('/api/mongodb/expense', { userId, expense, isDelete: false });
+                }
+              }
+              if (sub.currentData.dailyNotes) {
+                for (const [date, content] of Object.entries(sub.currentData.dailyNotes)) {
+                  await postData('/api/mongodb/daily-note', { userId, date, content });
+                }
+              }
+              if (sub.currentData.dpssTopics?.length) {
+                for (const topic of sub.currentData.dpssTopics) {
+                  await postData('/api/mongodb/topic', { userId, topic, category: 'dpss' });
+                }
+              }
+              if (sub.currentData.selfLearningTopics?.length) {
+                for (const topic of sub.currentData.selfLearningTopics) {
+                  await postData('/api/mongodb/topic', { userId, topic, category: 'selfLearning' });
+                }
+              }
+              if (sub.currentData.journalEntries) {
+                for (const [date, entry] of Object.entries(sub.currentData.journalEntries)) {
+                  await postData('/api/mongodb/journal', { userId, date, entry });
+                }
+              }
+              if (sub.currentData.habitCompletions) {
+                for (const [date, completions] of Object.entries(sub.currentData.habitCompletions)) {
+                  await postData('/api/mongodb/habit-completion', { userId, date, completions });
+                }
+              }
+              if (sub.currentData.attendance) {
+                for (const [date, data] of Object.entries(sub.currentData.attendance)) {
+                  await postData('/api/mongodb/attendance', { userId, date, data });
+                }
+              }
+              console.log("Pre-existing local data completely migrated to cloud MongoDB database.");
+            } catch (innerErr) {
+              console.warn("Migration stream caught error:", innerErr);
+            }
+          };
+
+          uploadLocalDataToRemote();
+        } else {
+          // Standard overwrite matching remote source of truth for synced profiles
+          sub.currentData = { ...sub.currentData, ...remoteData };
+        }
+
         sub.onData({ ...sub.currentData });
         localStorage.setItem('dps_data', JSON.stringify(sub.currentData));
       }
@@ -102,8 +191,8 @@ export const subscribeToData = (
 
   fetchRemoteData();
 
-  // Set up a background heartbeat / light refetching loop (every 10 seconds)
-  const interval = setInterval(fetchRemoteData, 10000);
+  // Set up a background heartbeat / light refetching loop (every 5 seconds for rapid cross-device sync)
+  const interval = setInterval(fetchRemoteData, 5000);
   subscription.pollingInterval = interval;
 
   return () => {

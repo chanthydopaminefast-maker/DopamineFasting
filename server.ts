@@ -26,6 +26,14 @@ async function getMongoDb() {
 export const app = express();
 const PORT = 3000;
 
+// Vercel path-rewrite normalization middleware
+app.use((req, res, next) => {
+  if (process.env.VERCEL && !req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 
