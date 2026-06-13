@@ -13,6 +13,7 @@ import DPSSTable from './components/DPSSTable';
 import SelfLearningTable from './components/SelfLearningTable';
 import { SharedContentFullView } from './components/SharedContentFullView';
 import { RecycleBin } from './components/RecycleBin';
+import { MaintenancePanel } from './components/MaintenancePanel';
 import Dashboard from './components/Dashboard';
 import { FloatingToolbar } from './components/FloatingToolbar';
 import { AppData, Student, CurrentUser, UserRole, ColumnConfig, Tab, ViewMode, AppSettings, StudentCategory, JournalEntry, ExpenseEntry } from './types';
@@ -989,6 +990,12 @@ const App: React.FC = () => {
                 onUpdate={handleUpdate} 
                 onPermanentDeleteStudent={handlePermanentDeleteStudent}
                 onPermanentDeleteTopic={handlePermanentDeleteTopic}
+              />
+            )}
+            {activeTab === Tab.Maintenance && (
+              <MaintenancePanel 
+                data={data} 
+                onUpdate={handleUpdate} 
               />
             )}
             <FloatingToolbar />

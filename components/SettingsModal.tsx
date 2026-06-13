@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AppSettings, CurrentUser, AppData } from '../types';
-import { X, Save, Settings2, Type, Baseline, Paintbrush, Check, Cloud, LogIn, LogOut, Image as ImageIcon, Trash2, FileText, Coins, Table, Download, Upload } from 'lucide-react';
+import { X, Save, Settings2, Type, Baseline, Paintbrush, Check, Cloud, LogIn, LogOut, Image as ImageIcon, Trash2, FileText, Coins, Table, Download, Upload, RefreshCw, ExternalLink } from 'lucide-react';
 import { PAPER_STYLES } from '../src/styles/paperStyles';
 import { signInWithEmailAndPassword, auth } from '../services/firebase';
 
@@ -75,6 +75,32 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onUp
   const [emailError, setEmailError] = useState('');
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState('');
+
+  const [mongoStatus, setMongoStatus] = useState<{ configured: boolean; connected: boolean; error: string | null }>({
+    configured: false,
+    connected: false,
+    error: null
+  });
+  const [checkingMongo, setCheckingMongo] = useState(false);
+
+  const checkMongoStatus = async () => {
+    setCheckingMongo(true);
+    try {
+      const res = await fetch('/api/mongodb/status');
+      const json = await res.json();
+      setMongoStatus(json);
+    } catch (err: any) {
+      setMongoStatus({ configured: false, connected: false, error: err.message || String(err) });
+    } finally {
+      setCheckingMongo(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      checkMongoStatus();
+    }
+  }, [isOpen]);
 
   const handleDownloadJSON = () => {
     if (!appData) return;
@@ -199,22 +225,94 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onUp
                 <div className="bg-white/50 border border-white/60 p-4 rounded-2xl space-y-4 shadow-sm flex flex-col items-center text-center">
                     {currentUser?.uid ? (
                         <>
-                          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
-                            <Check size={24} strokeWidth={3} />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-800 mb-1">Synced & Backed Up</p>
-                            {currentUser?.email && <p className="text-[10px] font-bold text-orange-600 mb-1 break-all tracking-tight">{currentUser.email}</p>}
-                            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                              Your data is automatically syncing across all devices.
-                            </p>
-                            <button 
-                              onClick={onLogout}
-                              className="px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-lg hover:bg-slate-50 hover:text-red-500 transition-colors font-bold text-xs flex items-center gap-2 mx-auto"
-                            >
-                              <LogOut size={14} /> Sign Out
-                            </button>
-                          </div>
+                          {mongoStatus.connected ? (
+                            <>
+                              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
+                                <Check size={24} strokeWidth={3} />
+                              </div>
+                              <div className="w-full">
+                                <p className="text-sm font-black text-slate-800 mb-1">Synced & Backed Up</p>
+                                {currentUser?.email && <p className="text-[10px] font-bold text-orange-600 mb-1 break-all tracking-tight">{currentUser.email}</p>}
+                                <div className="flex items-center gap-1.5 justify-center mb-2">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                  <span className="text-[10px] font-black text-emerald-600">MongoDB Atlas Connected</span>
+                                </div>
+                                <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                                  Your data is successfully synchronizing live to your cloud database!
+                                </p>
+                                <button 
+                                  onClick={onLogout}
+                                  className="px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-lg hover:bg-slate-50 hover:text-red-500 transition-colors font-bold text-xs flex items-center gap-2 mx-auto"
+                                >
+                                  <LogOut size={14} /> Sign Out
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-2">
+                                <Cloud size={24} strokeWidth={2} className="animate-bounce" />
+                              </div>
+                              <div className="w-full">
+                                <p className="text-sm font-black text-rose-800 mb-1">Offline • Local Isolated Mode</p>
+                                {currentUser?.email && <p className="text-[10px] font-bold text-rose-600 mb-1 break-all tracking-tight">{currentUser.email}</p>}
+                                <div className="flex items-center gap-1.5 justify-center mb-2">
+                                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                  <span className="text-[10px] font-black text-amber-600">MongoDB Sync Offline</span>
+                                </div>
+                                <p className="text-xs text-slate-500 leading-relaxed mb-4 max-w-xs mx-auto">
+                                  The server cannot connect to your MongoDB Atlas cluster! While offline, changes are stored only in this browser and will sync when connection is restored.
+                                </p>                                {/* Connection Diagnostic Report */}
+                                <div className="bg-rose-50 border border-rose-100 p-3.5 rounded-xl text-left mb-4 space-y-1 select-all">
+                                   <p className="text-[10px] font-black text-rose-700 uppercase tracking-wider mb-1">🔗 Connection Diagnostics</p>
+                                   <p className="text-[11px] font-bold text-slate-600 leading-normal">
+                                     <strong>Status Error:</strong> {mongoStatus.error || "MongoDB unreachable or MONGODB_URI is not set."}
+                                   </p>
+                                </div>
+
+                                {/* Connection Repair Instructions */}
+                                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-left mb-4">
+                                   <p className="text-[10px] font-black text-rose-800 uppercase tracking-widest mb-2 flex items-center gap-1">⚡ Quickest Sync Link</p>
+                                   <div className="mb-3.5 bg-orange-50 border border-orange-200 p-3 rounded-xl">
+                                     <p className="text-[11px] font-black text-orange-950 leading-snug mb-1.5">👉 Click this direct link to open your specific IP Whitelist tab immediately:</p>
+                                     <a 
+                                       href="https://cloud.mongodb.com/v2/6a2c145eb79f4a7fa23b36c5#/security/network/accessList" 
+                                       target="_blank" 
+                                       rel="noopener noreferrer" 
+                                       className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm tracking-widest transition-all"
+                                     >
+                                       Open Live Network Access Link <ExternalLink size={12} />
+                                     </a>
+                                   </div>
+
+                                   <p className="text-[10px] font-black text-slate-800 uppercase tracking-wider mb-2">🛠️ How to Enable Sync (Whitelist IP)</p>
+                                   <ol className="list-decimal list-inside space-y-1.5 text-[10.5px] text-slate-600 font-medium leading-relaxed">
+                                     <li>Click the <strong className="text-orange-655 font-bold">orange button above</strong> (requires logging in if prompted).</li>
+                                     <li>Click the green <strong className="text-slate-850 font-black">+ ADD IP ADDRESS</strong> button on the right side.</li>
+                                     <li>Select <strong className="text-slate-850 font-black">Allow Access From Anywhere</strong> (adds <code className="bg-slate-200/85 text-rose-600 px-1 rounded font-mono text-[10px]">0.0.0.0/0</code>).</li>
+                                     <li>Click the green <strong className="text-slate-850 font-black">Confirm</strong> button.</li>
+                                     <li>Wait 10 seconds, then click <strong className="font-bold">Retry Ping</strong> underneath!</li>
+                                   </ol>
+                                </div>
+
+                                <div className="flex gap-2 justify-center">
+                                  <button 
+                                    onClick={checkMongoStatus}
+                                    disabled={checkingMongo}
+                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition-colors font-bold text-xs flex items-center gap-1.5"
+                                  >
+                                    <RefreshCw size={12} className={checkingMongo ? "animate-spin" : ""} /> Retry Ping
+                                  </button>
+                                  <button 
+                                    onClick={onLogout}
+                                    className="px-4 py-1.5 border border-slate-200 bg-white text-slate-600 rounded-lg hover:bg-slate-50 hover:text-red-500 transition-colors font-bold text-xs flex items-center gap-1.5"
+                                  >
+                                    <LogOut size={12} /> Sign Out
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </>
                     ) : (
                         <>

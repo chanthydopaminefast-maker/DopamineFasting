@@ -284,7 +284,8 @@ export enum Tab {
   SelfLearning = 'SelfLearning',
   ExpenseTracker = 'ExpenseTracker',
   Analytics = 'Analytics',
-  RecycleBin = 'RecycleBin'
+  RecycleBin = 'RecycleBin',
+  Maintenance = 'Maintenance'
 }
 
 export type ViewMode = 'Default' | 'Minimalist';

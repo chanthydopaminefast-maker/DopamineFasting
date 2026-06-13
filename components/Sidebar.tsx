@@ -26,7 +26,8 @@ import {
   GraduationCap,
   Settings,
   Sparkles,
-  BarChart3
+  BarChart3,
+  ShieldCheck
 } from 'lucide-react';
 import { Tab, UserRole, AppSettings, ViewMode, StudentCategory, AppData, CurrentUser } from '../types';
 import { getSyncStatus } from '../services/firebase';
@@ -118,6 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: Tab.ExpenseTracker, icon: Wallet, label: 'Daily Expenses', roles: ['Admin', 'Teacher', 'Finance'] },
     { id: Tab.Analytics, icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Teacher', 'Finance'] },
     { id: Tab.RecycleBin, icon: Trash2, label: 'Recycle Bin', roles: ['Admin', 'Teacher'] },
+    { id: Tab.Maintenance, icon: ShieldCheck, label: 'Maintenance & Sync', roles: ['Admin'] },
   ];
 
   const filterSelectStyle = "w-full bg-white/10 border border-white/20 rounded-xl py-2.5 px-3 text-[11px] text-slate-900 font-black outline-none transition-all cursor-pointer appearance-none hover:bg-white/20 focus:ring-4 focus:ring-primary-500/10 backdrop-blur-md";

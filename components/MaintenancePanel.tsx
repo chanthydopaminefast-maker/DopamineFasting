@@ -317,17 +317,33 @@ export const MaintenancePanel: React.FC<Props> = ({ data, onUpdate }) => {
                             </div>
 
                             {!mongoStatus.connected && (
-                                <div className="p-6 bg-slate-100/50 rounded-3xl border border-slate-200/60 text-xs text-slate-600 space-y-4">
-                                    <div className="flex items-center gap-2 text-slate-800 font-bold uppercase tracking-wide text-[10px]">
-                                        <Sparkles size={14} className="text-amber-500" />
-                                        Setup instructions for 16MB Single Document Support (MongoDB Atlas)
+                                <div className="p-6 bg-slate-100/50 rounded-3xl border border-slate-200/60 text-xs text-slate-600 space-y-5">
+                                    <div className="flex items-center gap-2 text-rose-800 font-bold uppercase tracking-widest text-[11px]">
+                                        <Sparkles size={14} className="text-orange-500" />
+                                        ⚡ Quickest Link for live syncing
+                                    </div>
+
+                                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl">
+                                        <p className="font-bold text-orange-950 text-xs mb-2 leading-snug">👉 Open your IP Access Whitelist directly with this link:</p>
+                                        <a 
+                                            href="https://cloud.mongodb.com/v2/6a2c145eb79f4a7fa23b36c5#/security/network/accessList" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-[10px] font-bold uppercase rounded-xl shadow-lg tracking-wider transition-all"
+                                        >
+                                            Open Live Network Access Link <ExternalLink size={14} />
+                                        </a>
+                                    </div>
+
+                                    <div className="text-slate-800 font-bold uppercase tracking-wide text-[10px]">
+                                        🛠️ Simple Steps to Allow Sync
                                     </div>
                                     <ol className="list-decimal list-inside space-y-2 pl-1 leading-relaxed text-[11px] font-medium text-slate-500">
-                                        <li>Sign in at <a href="https://cloud.mongodb.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-bold">cloud.mongodb.com</a> and setup a free AWS database cluster</li>
-                                        <li>In Security: Add your Database User (credentials) and Allow Access from Anywhere (<code className="bg-slate-200/80 text-rose-600 px-1.5 py-0.5 rounded font-mono text-[10px]">0.0.0.0/0</code>)</li>
-                                        <li>Click <strong className="text-slate-700">Connect</strong> → Select <strong className="text-slate-700">Drivers</strong> and copy your connection string (Srv URI query)</li>
-                                        <li>Open Google AI Studio <strong className="text-slate-750">Settings (Gear)</strong> → Add variable <code className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.5 rounded font-mono text-[10px]">MONGODB_URI</code> and paste your credentials string</li>
-                                        <li>Refresh your app browser to sync with unlimited size support!</li>
+                                        <li>Click the <strong className="text-orange-655 font-bold">orange button above</strong> to go straight to your Network Access list in MongoDB.</li>
+                                        <li>On the right, click the green <strong className="text-slate-800">+ ADD IP ADDRESS</strong> button.</li>
+                                        <li>Select <strong className="text-slate-800">Allow Access From Anywhere</strong> (which fills in <code className="bg-slate-200/80 text-rose-600 px-1 py-0.5 rounded font-mono text-[10px]">0.0.0.0/0</code>).</li>
+                                        <li>Click the green <strong className="text-slate-800 font-bold">Confirm</strong> button.</li>
+                                        <li>Wait about 10 seconds for MongoDB to activate it, then click the <strong>Test Link</strong> button above!</li>
                                     </ol>
                                 </div>
                             )}
