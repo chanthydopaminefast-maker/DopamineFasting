@@ -12,6 +12,7 @@ const activeSubscriptions = new Map<string, {
 }>();
 
 const updateLocalCache = (userId: string, updates: Partial<AppData>) => {
+  lastLocalWriteTime = Date.now();
   const sub = activeSubscriptions.get(userId);
   if (sub) {
     const newData = { ...sub.currentData };
@@ -33,6 +34,7 @@ const updateLocalCache = (userId: string, updates: Partial<AppData>) => {
 };
 
 let isSystemOnline = true;
+let lastLocalWriteTime = 0;
 
 // Helper to retrieve status
 export const getSyncStatus = () => isSystemOnline;
@@ -176,6 +178,13 @@ export const subscribeToData = (
 
           uploadLocalDataToRemote();
         } else {
+          // Sync Guard: If a local write just happened, skip standard overwrite for 4 seconds
+          // This gives the server time to process the POST and include the new data in its GET response.
+          if (Date.now() - lastLocalWriteTime < 4000) {
+            console.log("MongoDB Sync Guard: Skipping remote overwrite due to recent local write.");
+            return;
+          }
+          
           // Standard overwrite matching remote source of truth for synced profiles
           sub.currentData = { ...sub.currentData, ...remoteData };
         }

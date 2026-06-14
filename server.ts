@@ -325,15 +325,18 @@ app.use(express.json({ limit: '10mb' }));
     const coll = category === 'dpss' ? 'dpss_topics' : 'self_learning_topics';
     try {
       const db = await getMongoDb();
+      const cleanTopic = { ...topic };
+      delete cleanTopic._id;
+      delete cleanTopic.userId;
       const updateDoc: any = {
-        $set: { ...topic, updatedAt: new Date().toISOString() }
+        $set: { ...cleanTopic, updatedAt: new Date().toISOString() }
       };
-      if (topic.deletedAt === undefined || topic.deletedAt === null) {
+      if (cleanTopic.deletedAt === undefined || cleanTopic.deletedAt === null) {
         delete updateDoc.$set.deletedAt;
         updateDoc.$unset = { deletedAt: "" };
       }
       await db.collection(coll).updateOne(
-        { userId, id: topic.id },
+        { userId, id: cleanTopic.id },
         updateDoc,
         { upsert: true }
       );
@@ -371,16 +374,19 @@ app.use(express.json({ limit: '10mb' }));
 
       topicsToSave?.forEach(({ topic, category }: any) => {
         const coll = category === 'dpss' ? 'dpss_topics' : 'self_learning_topics';
+        const cleanTopic = { ...topic };
+        delete cleanTopic._id;
+        delete cleanTopic.userId;
         const updateDoc: any = {
-          $set: { ...topic, updatedAt: new Date().toISOString() }
+          $set: { ...cleanTopic, updatedAt: new Date().toISOString() }
         };
-        if (topic.deletedAt === undefined || topic.deletedAt === null) {
+        if (cleanTopic.deletedAt === undefined || cleanTopic.deletedAt === null) {
           delete updateDoc.$set.deletedAt;
           updateDoc.$unset = { deletedAt: "" };
         }
         bulkOps[coll].push({
           updateOne: {
-            filter: { userId, id: topic.id },
+            filter: { userId, id: cleanTopic.id },
             update: updateDoc,
             upsert: true
           }

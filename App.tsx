@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { HabitTracker } from './components/HabitTracker';
 import { DailyJournal } from './components/DailyJournal';
 import { Reflections } from './components/Reflections';
@@ -47,6 +47,8 @@ const App: React.FC = () => {
   });
 
   const [isAuthInitializing, setIsAuthInitializing] = useState(true);
+  const lastLocalActionRef = useRef<number>(0);
+  const skipNextSnapshotRef = useRef<boolean>(false);
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
@@ -374,6 +376,15 @@ const App: React.FC = () => {
     }
     setLoading(true);
     const unsubscribe = subscribeToData(uid, (newData) => {
+      // Optimistic UI Sync Guard: If a local action just happened, skip clobbering state for a few seconds
+      // to avoid the flickering/disappearing behavior while the database writer is catching up.
+      const now = Date.now();
+      if (now - lastLocalActionRef.current < 4000) {
+        console.log("Sync Guard: Skipping server snapshot to prevent clobbering recent local changes.");
+        setLoading(false);
+        return;
+      }
+
       // Ensure DEFAULT_COLUMNS are initialized
       if (!newData.settings?.columns) {
           newData.settings = { ...(newData.settings || { fontSize: 12, fontFamily: "'Inter', sans-serif" }), columns: DEFAULT_COLUMNS };
@@ -554,92 +565,113 @@ const App: React.FC = () => {
   };
 
   const handleUpdateStudent = async (id: string, updates: Partial<Student>) => {
+    lastLocalActionRef.current = Date.now();
+    let studentToSave: Student | undefined;
     setData(prev => {
       const updatedStudents = prev.students.map(s => s.id === id ? { ...s, ...updates } : s);
       const newData = { ...prev, students: updatedStudents };
       storage.setItem('dps_data', JSON.stringify(newData));
-      
-      if (currentUser?.uid) {
-        import('./services/firebase').then(({ saveStudent }) => {
-          const student = updatedStudents.find(s => s.id === id);
-          if (student) saveStudent(currentUser.uid, student);
-        });
-      }
+      studentToSave = updatedStudents.find(s => s.id === id);
       return newData;
     });
     
     setHistory(prev => [...prev.slice(-19), data]);
     setRedoStack([]);
+
+    if (currentUser?.uid && studentToSave) {
+      try {
+        const { saveStudent } = await import('./services/firebase');
+        await saveStudent(currentUser.uid, studentToSave);
+      } catch (err) {
+        console.error("Failed to sync student update:", err);
+      }
+    }
   };
 
   const handleUpdateTopic = async (updatedTopics: any[], topicToSave?: any, category: 'dpss' | 'selfLearning' = 'dpss') => {
+    lastLocalActionRef.current = Date.now();
+    
     setData(prev => {
       const newData = category === 'dpss' ? { ...prev, dpssTopics: updatedTopics } : { ...prev, selfLearningTopics: updatedTopics };
       storage.setItem('dps_data', JSON.stringify(newData));
-
-      if (currentUser?.uid) {
-        import('./services/firebase').then(({ saveTopic, deleteTopic }) => {
-          if (topicToSave) {
-            if (topicToSave.deleted && !topicToSave.deletedAt) {
-               deleteTopic(currentUser.uid, topicToSave.id, category);
-            } else {
-               saveTopic(currentUser.uid, topicToSave, category);
-            }
-          }
-        });
-      }
       return newData;
     });
+
+    if (currentUser?.uid && topicToSave) {
+      try {
+        const { saveTopic, deleteTopic } = await import('./services/firebase');
+        if (topicToSave.deleted && !topicToSave.deletedAt) {
+          await deleteTopic(currentUser.uid, topicToSave.id, category);
+        } else {
+          await saveTopic(currentUser.uid, topicToSave, category);
+        }
+      } catch (err) {
+        console.error("Failed to sync topic update:", err);
+      }
+    }
   };
 
   const handleUpdateDailyNote = async (date: string, content: string) => {
+    lastLocalActionRef.current = Date.now();
     setData(prev => {
       const newDailyNotes = { ...(prev.dailyNotes || {}), [date]: content };
       const newData = { ...prev, dailyNotes: newDailyNotes };
       storage.setItem('dps_data', JSON.stringify(newData));
-
-      if (currentUser?.uid) {
-        import('./services/firebase').then(({ saveDailyNote }) => {
-          saveDailyNote(currentUser.uid, date, content);
-        });
-      }
       return newData;
     });
+
+    if (currentUser?.uid) {
+      try {
+        const { saveDailyNote } = await import('./services/firebase');
+        await saveDailyNote(currentUser.uid, date, content);
+      } catch (err) {
+        console.error("Failed to sync daily note:", err);
+      }
+    }
   };
 
   const handleUpdateJournalEntry = async (date: string, entry: JournalEntry) => {
+    lastLocalActionRef.current = Date.now();
     setData(prev => {
       const newJournalEntries = { ...(prev.journalEntries || {}), [date]: entry };
       const newData = { ...prev, journalEntries: newJournalEntries };
       storage.setItem('dps_data', JSON.stringify(newData));
-
-      if (currentUser?.uid) {
-        import('./services/firebase').then(({ saveJournalEntry }) => {
-          saveJournalEntry(currentUser.uid, date, entry);
-        });
-      }
       return newData;
     });
+
+    if (currentUser?.uid) {
+      try {
+        const { saveJournalEntry } = await import('./services/firebase');
+        await saveJournalEntry(currentUser.uid, date, entry);
+      } catch (err) {
+        console.error("Failed to sync journal entry:", err);
+      }
+    }
   };
 
   const handleUpdateHabitCompletion = async (date: string, habitId: string, completed: boolean | number) => {
+    lastLocalActionRef.current = Date.now();
     setData(prev => {
       const completions = prev.habitCompletions || {};
       const dayCompletions = { ...(completions[date] || {}), [habitId]: completed };
       const newCompletions = { ...completions, [date]: dayCompletions };
       const newData = { ...prev, habitCompletions: newCompletions };
       storage.setItem('dps_data', JSON.stringify(newData));
-
-      if (currentUser?.uid) {
-        import('./services/firebase').then(({ saveHabitCompletion }) => {
-          saveHabitCompletion(currentUser.uid, date, habitId, completed);
-        });
-      }
       return newData;
     });
+
+    if (currentUser?.uid) {
+      try {
+        const { saveHabitCompletion } = await import('./services/firebase');
+        await saveHabitCompletion(currentUser.uid, date, habitId, completed);
+      } catch (err) {
+        console.error("Failed to sync habit completion:", err);
+      }
+    }
   };
 
   const handleUpdateExpense = async (expense: ExpenseEntry, isDelete: boolean = false) => {
+    lastLocalActionRef.current = Date.now();
     let newExpenses = [...(data.expenses || [])];
     if (isDelete) {
       newExpenses = newExpenses.filter(e => e.id !== expense.id);
@@ -663,6 +695,7 @@ const App: React.FC = () => {
   };
 
   const undo = () => {
+    lastLocalActionRef.current = Date.now();
     if (history.length === 0) return;
     const previous = history[history.length - 1];
     setRedoStack(prev => [...prev, data]);
@@ -673,6 +706,7 @@ const App: React.FC = () => {
   };
 
   const redo = () => {
+    lastLocalActionRef.current = Date.now();
     if (redoStack.length === 0) return;
     const next = redoStack[redoStack.length - 1];
     setHistory(prev => [...prev, data]);
@@ -702,6 +736,7 @@ const App: React.FC = () => {
   }, [history, redoStack, data]);
 
   const handleAddStudent = async (parsedData?: Partial<Student> | Partial<Student>[]) => {
+    lastLocalActionRef.current = Date.now();
     setData(prev => {
       const incomingData = Array.isArray(parsedData) ? parsedData : (parsedData ? [parsedData] : [{}]);
       const newStudentsBatch = incomingData.map((s, index) => {
