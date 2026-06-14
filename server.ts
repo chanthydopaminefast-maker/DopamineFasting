@@ -325,9 +325,16 @@ app.use(express.json({ limit: '10mb' }));
     const coll = category === 'dpss' ? 'dpss_topics' : 'self_learning_topics';
     try {
       const db = await getMongoDb();
+      const updateDoc: any = {
+        $set: { ...topic, updatedAt: new Date().toISOString() }
+      };
+      if (topic.deletedAt === undefined || topic.deletedAt === null) {
+        delete updateDoc.$set.deletedAt;
+        updateDoc.$unset = { deletedAt: "" };
+      }
       await db.collection(coll).updateOne(
         { userId, id: topic.id },
-        { $set: { ...topic, updatedAt: new Date().toISOString() } },
+        updateDoc,
         { upsert: true }
       );
       res.json({ success: true });
@@ -364,10 +371,17 @@ app.use(express.json({ limit: '10mb' }));
 
       topicsToSave?.forEach(({ topic, category }: any) => {
         const coll = category === 'dpss' ? 'dpss_topics' : 'self_learning_topics';
+        const updateDoc: any = {
+          $set: { ...topic, updatedAt: new Date().toISOString() }
+        };
+        if (topic.deletedAt === undefined || topic.deletedAt === null) {
+          delete updateDoc.$set.deletedAt;
+          updateDoc.$unset = { deletedAt: "" };
+        }
         bulkOps[coll].push({
           updateOne: {
             filter: { userId, id: topic.id },
-            update: { $set: { ...topic, updatedAt: new Date().toISOString() } },
+            update: updateDoc,
             upsert: true
           }
         });

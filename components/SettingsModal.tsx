@@ -43,7 +43,23 @@ const WALLPAPER_PRESETS = [
   { name: 'Classic Japanese Washi Accent', url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&q=80&w=2000' },
   { name: 'Serene Peak Sunrise Theme', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2000' },
   { name: 'Lofi Cozy Coffee Workspace', url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=2000' },
-  { name: 'Minimal Solid Slate Dark', url: 'https://images.unsplash.com/photo-1533035353720-f1c6a75cd8ab?auto=format&fit=crop&q=80&w=2000' }
+  { name: 'Minimal Solid Slate Dark', url: 'https://images.unsplash.com/photo-1533035353720-f1c6a75cd8ab?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'ChatGPT Sleek Ivory White', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'ChatGPT Pure Pastel Mint', url: 'https://images.unsplash.com/photo-1618005198143-e5283b519a7f?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'ChatGPT Cozy Sakura Pink', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'ChatGPT Warm Sunset Peach', url: 'https://images.unsplash.com/photo-1614850523011-8f49fc9cb62a?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Minimalist Pure Alabaster', url: 'https://images.unsplash.com/photo-1604147706283-d7119b5b822c?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Subtle Seafoam Pastel Green', url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Zen Eucalyptus Soft Green', url: 'https://images.unsplash.com/photo-1515150144380-bca9f1650ed9?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Blush Velvet Pastel Pink', url: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Tuscan Sunlight Pastel Orange', url: 'https://images.unsplash.com/photo-1618005198140-5e5bc8f5223e?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Dreamy Sky Blue Breeze', url: 'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Nordic Minimalist Mist', url: 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Warm Sand & Stone Cream', url: 'https://images.unsplash.com/photo-1603513492128-ba7bc9b3e143?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Japanese Cherry Blossom Glow', url: 'https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Cozy Honey Maple Glow', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Creamy Dreamy Vanilla', url: 'https://images.unsplash.com/photo-1505330371309-fa9ae808dae9?auto=format&fit=crop&q=80&w=2000' },
+  { name: 'Relaxing Pastel Lilac Mist', url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&q=80&w=2000' }
 ];
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onUpdate, currentUser, onLogin, onPhoneLogin, onLogout, appData, onImportData }) => {
@@ -661,8 +677,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onUp
                 <div className="bg-white/50 border border-white/60 p-4 rounded-2xl space-y-4 shadow-sm">
                     {/* Preset wallpapers selection */}
                     <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1 mb-2">Preset Wallpapers</p>
-                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar border border-slate-200/50 p-1.5 rounded-xl bg-white/40">
+                        <div className="flex justify-between items-center pl-1 mb-2">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Preset Wallpapers</p>
+                            <span className="text-[9px] font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full animate-pulse">Scroll to see all 18+ styles 👇</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar border border-slate-200/50 p-1.5 rounded-xl bg-white/40">
                             {WALLPAPER_PRESETS.map((preset) => {
                                 const isActive = localSettings.backgroundImage === preset.url;
                                 return (

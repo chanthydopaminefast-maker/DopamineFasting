@@ -115,7 +115,8 @@ export const DPSSTable: React.FC<DPSSTableProps> = ({ data, onUpdate, onUpdateTo
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showExportStyleModal, setShowExportStyleModal] = useState(false);
-  const [selectedExportStyle, setSelectedExportStyle] = useState<'executive' | 'handwritten' | 'minimalist' | 'academic' | 'retro' | 'medium_bg' | 'light_bg' | 'no_bg'>('executive');
+  const [selectedExportStyle, setSelectedExportStyle] = useState<'executive' | 'handwritten' | 'minimalist' | 'academic' | 'retro' | 'medium_bg' | 'light_bg' | 'no_bg'>('no_bg');
+  const [sidebarTab, setSidebarTab] = useState<'basic' | 'favorites'>('basic');
   const [pdfCustomHeader, setPdfCustomHeader] = useState('');
   const [pdfCustomFooter, setPdfCustomFooter] = useState('');
   const [keepRowsTogether, setKeepRowsTogether] = useState(true);
@@ -1583,15 +1584,23 @@ export const DPSSTable: React.FC<DPSSTableProps> = ({ data, onUpdate, onUpdateTo
   };
 
   const deleteTopic = (id: string) => {
-    const findTopicAndCheckLock = (items: DPSSTopic[]): boolean => {
-      for (const item of items) {
-        if (item.id === id) return item.isLocked || false;
-        if (item.children) {
-          const locked = findTopicAndCheckLock(item.children);
-          if (locked) return true;
+    const isTopicOrAncestorLocked = (items: DPSSTopic[], targetId: string): boolean => {
+      const traverse = (itemList: DPSSTopic[], parentLocked: boolean): boolean => {
+        if (!Array.isArray(itemList)) return false;
+        for (const item of itemList) {
+          if (!item) continue;
+          const currentLocked = parentLocked || item.isLocked || false;
+          if (String(item.id) === String(targetId)) {
+            return currentLocked;
+          }
+          if (item.children) {
+            const childLocked = traverse(item.children, currentLocked);
+            if (childLocked) return true;
+          }
         }
-      }
-      return false;
+        return false;
+      };
+      return traverse(items, false);
     };
     
     // Find if the topic itself is locked (we can just check the specific item by finding it)
@@ -1611,16 +1620,13 @@ export const DPSSTable: React.FC<DPSSTableProps> = ({ data, onUpdate, onUpdateTo
     const topicToDelete = findSpecificTopic(data.dpssTopics || [], id);
     if (!topicToDelete) return;
     
-    if (topicToDelete.isLocked) {
-      const userInput = prompt(`This folder/document is LOCKED.\nTo delete it, you must type the word "Delete" exactly:`);
-      if (userInput !== "Delete") {
-        if (userInput !== null) alert("Incorrect verification word. Deletion cancelled.");
-        return;
-      }
-    } else {
-      if (!confirm('Move this topic to Recycle Bin? OK / Cancel')) {
-        return;
-      }
+    if (isTopicOrAncestorLocked(data.dpssTopics || [], id)) {
+      alert("This folder/document (or its parent folder) is LOCKED from deletion.\nTo delete it, you must Unlock it from the menu first.");
+      return;
+    }
+
+    if (!confirm('Move this topic to Recycle Bin? OK / Cancel')) {
+      return;
     }
 
     const markDeleted = (items: DPSSTopic[]): DPSSTopic[] => {
@@ -3137,25 +3143,27 @@ export const DPSSTable: React.FC<DPSSTableProps> = ({ data, onUpdate, onUpdateTo
 
         {/* Unifed Scrollable Column containing action buttons, search, topics, and folder archive */}
         <div className="flex-1 overflow-y-auto pr-1 -mr-1 space-y-3 max-[767px]:landscape:space-y-2.5 custom-scrollbar flex flex-col">
-          <div className="flex flex-row gap-2 shrink-0">
-            <button 
-              onClick={() => {
-                addTopic();
-              }} 
-              className="flex-1 py-3 bg-orange-500 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-1.5 hover:bg-orange-600 shadow-xl shadow-orange-500/20 active:scale-95 transition-all whitespace-nowrap"
-            >
-              <Plus size={16} /> Add Topic
-            </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  addTopic();
+                }} 
+                className="flex-1 py-3 bg-orange-500 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-1.5 hover:bg-orange-600 shadow-xl shadow-orange-500/20 active:scale-95 transition-all whitespace-nowrap"
+              >
+                <Plus size={16} /> Add Topic
+              </button>
 
-            <button 
-              onClick={() => {
-                setIsImportModalOpen(true);
-              }} 
-              className="px-3.5 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-1 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all whitespace-nowrap"
-              title="Import Topic Folder from JSON or Clipboard"
-            >
-              <FileUp size={16} /> Import
-            </button>
+              <button 
+                onClick={() => {
+                  setIsImportModalOpen(true);
+                }} 
+                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-1 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all whitespace-nowrap"
+                title="Import Topic Folder from JSON or Clipboard"
+              >
+                <FileUp size={16} /> Import
+              </button>
+            </div>
 
             {/* Search Bar */}
             <div className="relative flex-1">
@@ -3178,54 +3186,61 @@ export const DPSSTable: React.FC<DPSSTableProps> = ({ data, onUpdate, onUpdateTo
             </div>
           </div>
 
-          {/* Favorite Stars */}
-          <div className="pb-4 border-b border-slate-200/65 dark:border-slate-800/60 w-full">
+          {/* Sub-tab switcher: Files / Stars in ONE line Left/Right */}
+          <div className="flex bg-slate-100 dark:bg-slate-900/40 p-1 rounded-xl shrink-0 gap-1 border border-slate-200/40 dark:border-slate-800/40">
             <button
-              onClick={() => setIsArchiveFolderOpen(prev => !prev)}
-              className="w-full flex items-center justify-between p-2 rounded-xl bg-amber-50/50 dark:bg-slate-900/20 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20 border border-amber-100/40 transition-all select-none cursor-pointer"
+              onClick={() => setSidebarTab('basic')}
+              className={`flex-1 py-1.5 rounded-lg text-[10px] uppercase font-black transition-all flex items-center justify-center gap-1.5 ${sidebarTab === 'basic' ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
             >
-              <div className="flex items-center gap-2">
-                <Star size={15} className="text-amber-500" fill="currentColor" />
-                <span className="text-[11px] font-black uppercase tracking-wider">Favorite Stars</span>
-                <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
-                  {archivedTopics.length}
-                </span>
-              </div>
-              {isArchiveFolderOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <Folder size={12} className={sidebarTab === 'basic' ? 'text-orange-500' : 'text-slate-400'} />
+              <span>Files</span>
+              <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded-full text-slate-600 dark:text-slate-300">
+                {filteredTopics.length}
+              </span>
             </button>
+            <button
+              onClick={() => setSidebarTab('favorites')}
+              className={`flex-1 py-1.5 rounded-lg text-[10px] uppercase font-black transition-all flex items-center justify-center gap-1.5 ${sidebarTab === 'favorites' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+            >
+              <Star size={12} fill={sidebarTab === 'favorites' ? 'currentColor' : 'none'} className={sidebarTab === 'favorites' ? 'text-white' : 'text-amber-500'} />
+              <span>Stars</span>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${sidebarTab === 'favorites' ? 'bg-amber-600 text-amber-100' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                {archivedTopics.length}
+              </span>
+            </button>
+          </div>
 
-            {isArchiveFolderOpen && (
-              <div className="mt-2 space-y-1.5 pl-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                {filteredArchivedTopics.length > 0 ? (
-                  filteredArchivedTopics.map(t => renderTopic(t))
+          {/* Conditional view content based on set tab */}
+          {sidebarTab === 'favorites' ? (
+            <div className="flex-1 overflow-y-auto">
+              {filteredArchivedTopics.length > 0 ? (
+                <div className="space-y-1">
+                  {filteredArchivedTopics.map(t => renderTopic(t))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-[11px] text-slate-400 select-none">
+                  {searchTerm ? 'No matching favorite topics' : 'Stars is empty'}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              <div 
+                className={`space-y-1 min-h-[50px] outline-none rounded-xl transition-all ${dragOverTopicId === null && draggedTopicId ? 'ring-2 ring-orange-400/50 bg-orange-50/30' : ''}`}
+                onDragOver={(e) => handleDragOver(e, null)}
+                onDragLeave={(e) => handleDragLeave(e, null)}
+                onDrop={(e) => handleDrop(e, null)}
+              >
+                {filteredTopics.length > 0 ? (
+                  filteredTopics.map(t => renderTopic(t))
                 ) : (
-                  <div className="text-center py-4 text-[10px] text-slate-400 select-none">
-                    {searchTerm ? 'No matching favorite topics' : 'Favorite Stars is empty'}
+                  <div className="text-center py-8 text-[11px] text-slate-400 select-none">
+                    {searchTerm ? 'No matching note topics found' : 'No active note topics yet'}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Active Topics */}
-          <div className="flex items-center gap-2 w-full pt-2">
-            <Folder size={15} className="text-slate-500" />
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Basic Files</span>
-          </div>
-          <div 
-            className={`space-y-1 min-h-[50px] outline-none rounded-xl transition-all ${dragOverTopicId === null && draggedTopicId ? 'ring-2 ring-orange-400/50 bg-orange-50/30' : ''}`}
-            onDragOver={(e) => handleDragOver(e, null)}
-            onDragLeave={(e) => handleDragLeave(e, null)}
-            onDrop={(e) => handleDrop(e, null)}
-          >
-            {filteredTopics.length > 0 ? (
-              filteredTopics.map(t => renderTopic(t))
-            ) : (
-              <div className="text-center py-6 text-xs text-slate-400 select-none">
-                {searchTerm ? 'No matching note topics found' : 'No active note topics yet'}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Resizable drag handle (Touch + Mouse friendly) */}
